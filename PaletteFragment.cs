@@ -11,6 +11,7 @@ using Android.Util;
 using Android.Views;
 using Android.Widget;
 using Android.Graphics;
+using Android.Views.InputMethods;
 
 namespace ColorPaletteGenerator
 {
@@ -20,6 +21,7 @@ namespace ColorPaletteGenerator
         LinearLayout EnterHexLayout;
         LinearLayout[] OtherColors;
         TextView[] OtherHexes;
+        ImageButton openPickerBtn;
 
         public override void OnCreate(Bundle savedInstanceState)
         {
@@ -28,11 +30,12 @@ namespace ColorPaletteGenerator
 
         public override View OnCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
         {
-            
+
             var rootView = inflater.Inflate(Resource.Layout.palette_fragment, container, false);
 
             EnterColor = rootView.FindViewById<TextView>(Resource.Id.enterColorHex);
             EnterHexLayout = rootView.FindViewById<LinearLayout>(Resource.Id.enterMainColorLayout);
+            openPickerBtn = rootView.FindViewById<ImageButton>(Resource.Id.openPicker);
 
             OtherColors = new LinearLayout[] {
                 rootView.FindViewById<LinearLayout>(Resource.Id.color1),
@@ -66,30 +69,39 @@ namespace ColorPaletteGenerator
             {
                 if (EnterColor.Text.Length == 6)
                 {
+                    try
+                    {
+                        int num = Int32.Parse(EnterColor.Text, System.Globalization.NumberStyles.HexNumber);
+                    }
+                    catch (FormatException)
+                    {
+                        Toast.MakeText(Application.Context, "Not Valid Hex (1-9, a-f)", 0).Show();
+                        return;
+                    }
+
                     Color MainColor = GetColorFromHex(EnterColor.Text);
                     EnterHexLayout.SetBackgroundColor(MainColor);
                     // Get saturation and brightness.
                     float[] hsbVals = new float[3];
                     Color.ColorToHSV(MainColor, hsbVals);
 
-
                     int count = 0;
 
                     float[] HigherHSV = hsbVals;
                     float[] LowerHSV = hsbVals;
 
-                    float factor = 1f;
+                    float factorLight = 1f;
                     float factorDark = 0f;
 
                     foreach (LinearLayout layout in OtherColors)
                     {
                         if (count < 5)
                         {
-                            Color newColor = new Color(lighten(MainColor, factor));
+                            Color newColor = new Color(lighten(MainColor, factorLight));
                             layout.SetBackgroundColor(newColor);
                             OtherHexes[count].Text = GetHex(newColor);
                             OtherHexes[count].SetTextColor(Color.Black);
-                            factor -= 0.20f;
+                            factorLight -= 0.20f;
                         }
                         else
                         {
@@ -101,10 +113,14 @@ namespace ColorPaletteGenerator
                         count++;
                     };
 
-                    //   InputMethodManager inputManager = (InputMethodManager)this.GetSystemService(InputMethodService);
-
-                    //   inputManager.HideSoftInputFromWindow(this.CurrentFocus.WindowToken, HideSoftInputFlags.NotAlways);
+                    //InputMethodManager inputManager = (InputMethodManager)Application.Context.GetSystemService(Android.Content.Context.InputMethodService);
+                    //inputManager.HideSoftInputFromWindow(this.CurrentFocus.WindowToken, HideSoftInputFlags.NotAlways);
                 }
+            };
+
+            openPickerBtn.Click += delegate
+            {
+                ((MainActivity)Activity).ShowPicker();
             };
 
             return rootView;
